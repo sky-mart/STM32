@@ -3,7 +3,7 @@ CMSIS_INCLUDE = /Users/Vlad/Dev/Packages/CMSIS/CMSIS/Include
 LINKER_SCRIPT = STM32F303XC_FLASH.ld
 
 # REMEMBER about debug flag
-OBJECT_GEN_FLAGS = -g -O0 -mthumb -fno-builtin -Wall -ffunction-sections -fdata-sections -fomit-frame-pointer -mabi=aapcs
+OBJECT_GEN_FLAGS = -ggdb -O0 -mthumb -fno-builtin -Wall -ffunction-sections -fdata-sections -fomit-frame-pointer -mabi=aapcs
 
 C_FLAGS = $(OBJECT_GEN_FLAGS) -I$(CMSIS_INCLUDE) -Iinc
 ASM_FLAGS = $(OBJECT_GEN_FLAGS) -x assembler-with-cpp
@@ -12,6 +12,7 @@ EXE_LINKER_FLAGS = -Wl,--gc-sections --specs=nano.specs -specs=nosys.specs -mthu
 
 COMPILER = arm-none-eabi-gcc
 OBJCOPY = arm-none-eabi-objcopy
+DEBUGGER = arm-none-eabi-gdb
 
 clean:
 	rm out/*
@@ -33,4 +34,12 @@ out/$(TARGET).bin: out/$(TARGET).elf
 flash: out/$(TARGET).bin
 	st-flash write out/$(TARGET).bin 0x8000000
 
-$(TARGET): out/$(TARGET).elf
+erase:
+	st-flash erase	
+
+build: out/$(TARGET).elf	
+
+debug: build 
+	$(DEBUGGER) out/$(TARGET).elf \
+  -ex 'target remote localhost:3333' \
+  -ex 'monitor reset halt'
