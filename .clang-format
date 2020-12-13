@@ -1,0 +1,9 @@
+---
+# We'll use defaults from the LLVM style, but with 4 columns indentation.
+BasedOnStyle: Chromium
+ColumnLimit: 80
+IndentWidth: 4
+---
+Language: Cpp
+AlignConsecutiveAssignments: true
+AlignTrailingComments: true
