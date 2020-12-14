@@ -29,13 +29,14 @@ char usart_recv_char_sync(USART_TypeDef *usart)
     return usart->RDR;
 }
 
-void usart_send_async_dma(USART_TypeDef *usart, DMA_Channel_TypeDef* dma_channel, const char* data, uint32_t size)
+void usart_send_async_dma(USART_TypeDef *usart, DMA_Channel_TypeDef* dma_channel, u8 dma_irq, const char* data, uint32_t size)
 {
 	dma_transfer_t dma_trasfer;
 	dma_trasfer.memory_addr = (void*)data;
 	dma_trasfer.periph_addr = (void*)&usart->TDR;
 	dma_trasfer.count = size;
 	*(uint32_t*)&dma_trasfer.config = 0U;
+	dma_trasfer.config.TCIE = dma_irq;
 	dma_trasfer.config.DIR = 1;
 	dma_trasfer.config.MINC = 1;
 	dma_channel_init(dma_channel, &dma_trasfer);

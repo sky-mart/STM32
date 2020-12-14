@@ -4,6 +4,7 @@
  */
 
 #include "log.h"
+#include "usart.h"
 #include "stm32f3xx.h"
 #include "stdio.h"
 

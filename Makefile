@@ -3,12 +3,13 @@ CMSIS_INCLUDE = /Users/Vlad/Dev/Packages/CMSIS/CMSIS/Include
 LINKER_SCRIPT = STM32F303XC_FLASH.ld
 
 # REMEMBER about debug flag
-OBJECT_GEN_FLAGS = -ggdb -O0 -mthumb -fno-builtin -Wall -ffunction-sections -fdata-sections -fomit-frame-pointer -mabi=aapcs
+COMMON_FLAGS = -mthumb -mcpu=cortex-m4 -mabi=aapcs
+OBJECT_GEN_FLAGS = $(COMMON_FLAGS) -ggdb -O0 -fno-builtin -Wall -ffunction-sections -fdata-sections -fomit-frame-pointer
 
 C_FLAGS = $(OBJECT_GEN_FLAGS) -I$(CMSIS_INCLUDE) -Iinc
 ASM_FLAGS = $(OBJECT_GEN_FLAGS) -x assembler-with-cpp
 
-EXE_LINKER_FLAGS = -Wl,--gc-sections --specs=nano.specs -specs=nosys.specs -mthumb -mabi=aapcs -Wl,-Map=out/$(TARGET).map
+EXE_LINKER_FLAGS = $(COMMON_FLAGS) -Wl,--gc-sections --specs=nano.specs -specs=nosys.specs -Wl,-Map=out/$(TARGET).map
 
 COMPILER = arm-none-eabi-gcc
 OBJCOPY = arm-none-eabi-objcopy
