@@ -16,9 +16,6 @@ void rcc_init()
 
 int main()
 {
-	const int MAX_RESP_LEN = 50; 
-	char resp[MAX_RESP_LEN];
-	int resp_len = 0;
 	char c = 0;
    
     rcc_init();
@@ -26,8 +23,7 @@ int main()
     
     while (1) {
         c = usart_recv_char_sync(USART2); // usart2 is initialized in log_init
-        resp_len = snprintf(resp, MAX_RESP_LEN, "received char: %c\r\n", c);
-        log_write(resp, resp_len);
+        log_printf("received char: %c\r\n", c);
     }
 }
 

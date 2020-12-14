@@ -4,6 +4,6 @@
 #include "stdint.h"
 
 void log_init();
-void log_write(const char* data, uint32_t size);
+int log_printf(const char* format, ...);
 
 #endif // LOG_H
