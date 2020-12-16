@@ -12,11 +12,14 @@ void rcc_init()
 {
 	RCC->AHBENR     |= RCC_AHBENR_GPIOAEN | RCC_AHBENR_DMA1EN;
     RCC->APB1ENR    |= RCC_APB1ENR_USART2EN;
+    RCC->CFGR3 |= RCC_CFGR3_USART2SW_SYSCLK; // set usart2 clock source to SYSCLK
 }
 
 int main()
 {
 	char c = 0;
+
+	SystemCoreClockUpdate();
    
     rcc_init();
     log_init();

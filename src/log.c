@@ -37,7 +37,8 @@ static log_t log = {
 static void log_usart_init()
 {
 	usart_gpio_init(&log.tx_pin, &log.rx_pin);
-	log.usart->BRR = 0x341; // 8 MHz, 9600 baud/s 
+	RCC->CFGR3 |= RCC_CFGR3_USART2SW_SYSCLK; // set usart2 clock source to SYSCLK
+	log.usart->BRR = 0x1D4C; // 72 MHz, 9600 baud/s, oversampling 16 
 	log.usart->CR3 |= USART_CR3_DMAT; // enable tx dma
     log.usart->CR1 |= 
     	USART_CR1_TE |	// enable trasmitter

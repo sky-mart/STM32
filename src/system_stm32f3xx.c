@@ -196,6 +196,31 @@ void SystemInit(void)
   /* Reset USARTSW[1:0], I2CSW and TIMs bits */
   RCC->CFGR3 &= 0xFF00FCCCU;
 
+  /* Turn on HSE*/
+  RCC->CR |= RCC_CR_HSEON;
+
+  /* Wait for HSE to become ready */
+  while (!(RCC->CR & RCC_CR_HSERDY));
+
+  RCC->CFGR |= 
+    RCC_CFGR_PLLMUL9 |            // PLL multiplier
+    RCC_CFGR_PLLSRC_HSE_PREDIV;   // PLL source to HSE
+
+  /* Turn on PLL */ 
+  RCC->CR |= RCC_CR_PLLON;  
+
+  /* Wait for PLL to become ready */
+  while (!(RCC->CR & RCC_CR_PLLRDY));
+
+  /* Add 2 wait states to flash access time */
+  FLASH->ACR |= FLASH_ACR_LATENCY_2;
+
+  /* Set SYSCLK to PLL */
+  RCC->CFGR |= RCC_CFGR_SW_PLL;
+
+  /* Wait for SYSCLK to become PLL */
+  while ((RCC->CFGR & RCC_CFGR_SWS_Msk) != RCC_CFGR_SWS_PLL);
+
   /* Disable all interrupts */
   RCC->CIR = 0x00000000U;
 
