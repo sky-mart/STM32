@@ -18,6 +18,7 @@ void rcc_init()
 int main()
 {
 	char c = 0;
+	log_printf_result_t log_result = LOG_PRINTF_SUCCESS;
 
 	SystemCoreClockUpdate();
    
@@ -26,7 +27,7 @@ int main()
     
     while (1) {
         c = usart_recv_char_sync(USART2); // usart2 is initialized in log_init
-        log_printf("received char: %c\r\n", c);
+        log_result = log_printf("received char: %c\n", c);
     }
 }
 

@@ -37,8 +37,10 @@ static log_t log = {
 static void log_usart_init()
 {
 	usart_gpio_init(&log.tx_pin, &log.rx_pin);
-	log.usart->BRR = 0x4E1;				// 72 MHz, 115200 baud/s, oversampling 8
-	log.usart->CR3 |= USART_CR3_DMAT;	// enable tx dma
+	log.usart->BRR = 0x4E1;	// 72 MHz, 115200 baud/s, oversampling 8
+	log.usart->CR3 |= 
+		USART_CR3_DMAT |	// enable tx dma
+		USART_CR3_OVRDIS;	// disable overrun detection
     log.usart->CR1 |= 
     	USART_CR1_OVER8 |	// oversampling 8
     	USART_CR1_TE |		// enable trasmitter
@@ -64,11 +66,15 @@ void log_init()
  *  cur_data next_data   end
  */
 
-void log_printf(const char* format, ...)
+log_printf_result_t log_printf(const char* format, ...)
 {
-	int len = 0;
-	uint32_t available_len = 0;
+	log_printf_result_t result = LOG_PRINTF_SUCCESS;
+	int size = 0;
+	uint32_t available_size = 0;
+	uint32_t existing_size = 0;
 	char* end = 0;
+	char** to_assign_end = 0;
+	uint32_t* to_assign_size = 0;
 	va_list va;
 
 	va_start(va, format);
@@ -78,31 +84,42 @@ void log_printf(const char* format, ...)
 
 	if (log.cur_size == 0) {
 		end = log.buffer;
-		len = vsnprintf(end, LOG_BUFFER_SIZE, format, va);
-		if (len >= 0) {
-			log.cur_data = end;
-			log.cur_size = MIN(len, LOG_BUFFER_SIZE - 1);
-			log_exec_cur_transfer();
-		}
+		available_size = LOG_BUFFER_SIZE;
+		to_assign_end = &log.cur_data;
+		to_assign_size = &log.cur_size;
 	} else if (log.next_size == 0) {
 		end = log.cur_data + log.cur_size;
-		available_len = LOG_BUFFER_SIZE - (end - log.buffer);
-		len = vsnprintf(end, available_len, format, va);
-		if (len >= 0) {
-			log.next_data = end;
-			log.next_size = MIN(len, available_len - 1);
-		}
+		available_size = LOG_BUFFER_SIZE - (end - log.buffer);
+		to_assign_end = &log.next_data;
+		to_assign_size = &log.next_size;
 	} else {
 		end = log.next_data + log.next_size;
-		available_len = LOG_BUFFER_SIZE - (end - log.buffer);
-		len = vsnprintf(end, available_len, format, va);
-		if (len >= 0) {
-			log.next_size += MIN(len, available_len - 1);
-		}
+		available_size = LOG_BUFFER_SIZE - (end - log.buffer);
+		to_assign_size = &log.next_size;
+		existing_size = log.next_size;
 	}
+
+	size = vsnprintf(end, available_size, format, va);
+	if (size >= 0) {
+		if (to_assign_end)
+			*to_assign_end = end;
+
+		if (size >= available_size) {
+			*to_assign_size = existing_size + available_size - 1;
+			result = LOG_PRINTF_PARTIAL_PRINT;
+		} else {
+			*to_assign_size = existing_size + size;
+		}
+
+		if (to_assign_size == &log.cur_size)
+			log_exec_cur_transfer();
+	} else {
+		result = LOG_PRINTF_ENCODING_ERROR;
+	}	
 
 	__enable_irq();
 	va_end(va);
+	return result;
 }
 
 void DMA1_Channel7_IRQHandler()
@@ -110,6 +127,10 @@ void DMA1_Channel7_IRQHandler()
 	if (DMA1->ISR & DMA_ISR_TCIF7) {
 		DMA1->IFCR |= DMA_IFCR_CTCIF7 | DMA_IFCR_CHTIF7;
 		log.dma_channel->CCR &= ~DMA_CCR_EN;
+
+		// We need to disable interrupts to use log_printf in interrupt handlers
+		// TODO: think about irq priorities
+		__disable_irq();
 
 		if (log.next_size > 0) {
 			log.cur_data = log.next_data;
@@ -121,5 +142,7 @@ void DMA1_Channel7_IRQHandler()
 			log.cur_data = 0;
 			log.cur_size = 0;
 		}
+
+		__enable_irq();
 	}
 }
