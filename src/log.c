@@ -72,7 +72,9 @@ void log_printf(const char* format, ...)
 	va_list va;
 
 	va_start(va, format);
-	NVIC_DisableIRQ(log.dma_channel_irq);
+
+	// We need to disable interrupts to use log_printf in interrupt handlers
+	__disable_irq();
 
 	if (log.cur_size == 0) {
 		end = log.buffer;
@@ -99,7 +101,7 @@ void log_printf(const char* format, ...)
 		}
 	}
 
-	NVIC_EnableIRQ(log.dma_channel_irq);
+	__enable_irq();
 	va_end(va);
 }
 
