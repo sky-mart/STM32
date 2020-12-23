@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define LOG_BUFFER_SIZE 21UL
+#define LOG_BUFFER_SIZE 201UL
 
 typedef struct {
 	char* cur_data;
