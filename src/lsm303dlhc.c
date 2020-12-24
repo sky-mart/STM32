@@ -39,10 +39,10 @@ void lsm303dlhc_init()
 	lsm303dlhc_i2c_init();
 }
 
-static uint8_t lsm303dlhc_reg_read(uint8_t slave, uint8_t reg)
+static void lsm303dlhc_prepare_reg_read(uint8_t slave, uint8_t reg)
 {
 	lsm.i2c->CR2 &= ~I2C_CR2_SADD;		
-	lsm.i2c->CR2 |= slave << 1;
+	lsm.i2c->CR2 |= slave << 1;	// have to shift by 1 because of 7-bit addr
         
     lsm.i2c->CR2 &= ~(
     	I2C_CR2_RD_WRN |	// write
@@ -60,25 +60,48 @@ static uint8_t lsm303dlhc_reg_read(uint8_t slave, uint8_t reg)
     while (!(lsm.i2c->ISR & I2C_ISR_TC)) {
     	__NOP();
     }
+}
+
+static void lsm303dlhc_regs_read_sync(uint8_t slave, uint8_t begin_reg, uint8_t* data, uint8_t size)
+{
+	uint8_t i;
+	lsm303dlhc_prepare_reg_read(slave, begin_reg);
 
 	lsm.i2c->CR2 |= 
 		I2C_CR2_RD_WRN |	// read
 		I2C_CR2_AUTOEND;    // auto stop
-    lsm.i2c->CR2 |= 1 << I2C_CR2_NBYTES_Pos;	// 1 byte
+    lsm.i2c->CR2 &= ~I2C_CR2_NBYTES;
+    lsm.i2c->CR2 |= size << I2C_CR2_NBYTES_Pos;	// size bytes
     lsm.i2c->CR2 |= I2C_CR2_START;
     
-    while (!(lsm.i2c->ISR & I2C_ISR_RXNE)) {
-    	__NOP();
+    for (i = 0; i < size; i++) {
+    	while (!(lsm.i2c->ISR & I2C_ISR_RXNE)) {
+    		__NOP();
+    	}
+    	data[i] = lsm.i2c->RXDR;
     }
-    return lsm.i2c->RXDR;
 }
 
-uint8_t lsm303dlhc_acc_reg_read(lsm303dlhc_acc_reg_t reg)
+uint8_t lsm303dlhc_acc_reg_read_sync(lsm303dlhc_acc_reg_t reg)
 {
-	return lsm303dlhc_reg_read(LSM303DLHC_ACCELEROMETER, reg);
+    uint8_t reg_value;
+    lsm303dlhc_regs_read_sync(LSM303DLHC_ACCELEROMETER, reg, &reg_value, 1);
+    return reg_value;
 }
 
-uint8_t lsm303dlhc_mag_reg_read(lsm303dlhc_mag_reg_t reg)
+uint8_t lsm303dlhc_mag_reg_read_sync(lsm303dlhc_mag_reg_t reg)
 {
-	return lsm303dlhc_reg_read(LSM303DLHC_MAGNETOMETER, reg);
+    uint8_t reg_value;
+    lsm303dlhc_regs_read_sync(LSM303DLHC_MAGNETOMETER, reg, &reg_value, 1);
+    return reg_value;
+}
+
+void lsm303dlhc_acc_regs_read_sync(lsm303dlhc_acc_reg_t reg, uint8_t* data, uint8_t size)
+{
+	return lsm303dlhc_regs_read_sync(LSM303DLHC_ACCELEROMETER, reg, data, size);
+}
+
+void lsm303dlhc_mag_regs_read_sync(lsm303dlhc_mag_reg_t reg, uint8_t* data, uint8_t size)
+{
+	return lsm303dlhc_regs_read_sync(LSM303DLHC_MAGNETOMETER, reg, data, size);
 }

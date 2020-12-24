@@ -31,25 +31,23 @@ void soft_sleep(uint32_t value)
 void mag_print()
 {
 	log_printf_result_t log_result = LOG_PRINTF_SUCCESS;
-	uint8_t mag_reg = 0;	
+	uint8_t mag_data[6];	
 
-	mag_reg = lsm303dlhc_mag_reg_read(LSM303DLHC_OUT_X_H_M);
-	log_result = log_printf("X_H_M: %x\n", mag_reg);
-
-	mag_reg = lsm303dlhc_mag_reg_read(LSM303DLHC_OUT_X_L_M);
-	log_result = log_printf("X_L_M: %x\n", mag_reg);
-
-	mag_reg = lsm303dlhc_mag_reg_read(LSM303DLHC_OUT_Y_H_M);
-	log_result = log_printf("Y_H_M: %x\n", mag_reg);
-
-	mag_reg = lsm303dlhc_mag_reg_read(LSM303DLHC_OUT_Y_L_M);
-	log_result = log_printf("Y_L_M: %x\n", mag_reg);
-	
-	mag_reg = lsm303dlhc_mag_reg_read(LSM303DLHC_OUT_Z_H_M);
-	log_result = log_printf("Z_H_M: %x\n", mag_reg);
-	
-	mag_reg = lsm303dlhc_mag_reg_read(LSM303DLHC_OUT_Z_L_M);
-	log_result = log_printf("Z_L_M: %x\n\n", mag_reg);
+	lsm303dlhc_mag_regs_read(LSM303DLHC_OUT_X_H_M, mag_data, 6);
+	log_result = log_printf(
+		"X_H_M: %x\n"
+		"X_L_M: %x\n"
+		"Y_H_M: %x\n"
+		"Y_L_M: %x\n"
+		"Z_H_M: %x\n"
+		"Z_L_M: %x\n\n", 
+		mag_data[0],
+		mag_data[1],
+		mag_data[2],
+		mag_data[3],
+		mag_data[4],
+		mag_data[5]
+	);
 }
 
 int main()
