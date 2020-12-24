@@ -39,12 +39,7 @@ static void lsm303dlhc_i2c_init()
     lsm.i2c->CR1 |= I2C_CR1_PE;
 }
 
-void lsm303dlhc_init()
-{
-	lsm303dlhc_i2c_init();
-}
-
-static void lsm303dlhc_prepare_reg_read(uint8_t slave, uint8_t reg)
+static void lsm303dlhc_write_sub(uint8_t slave, uint8_t sub)
 {
 	lsm.i2c->CR2 &= ~I2C_CR2_SADD;		
 	lsm.i2c->CR2 |= slave << 1;	// have to shift by 1 because of 7-bit addr
@@ -60,7 +55,7 @@ static void lsm303dlhc_prepare_reg_read(uint8_t slave, uint8_t reg)
     while (!(lsm.i2c->ISR & I2C_ISR_TXIS)) {
     	__NOP(); 
     }
-    lsm.i2c->TXDR = reg;
+    lsm.i2c->TXDR = sub;
     
     while (!(lsm.i2c->ISR & I2C_ISR_TC)) {
     	__NOP();
@@ -70,9 +65,9 @@ static void lsm303dlhc_prepare_reg_read(uint8_t slave, uint8_t reg)
 static void lsm303dlhc_regs_read_sync(uint8_t slave, uint8_t begin_reg, uint8_t* data, uint8_t size)
 {
 	uint8_t i;
-	lsm303dlhc_prepare_reg_read(slave, begin_reg);
+	lsm303dlhc_write_sub(slave, begin_reg);
 
-    lsm.i2c->CR1 &= ~I2C_CR1_TXDMAEN;
+    lsm.i2c->CR1 &= ~I2C_CR1_RXDMAEN;
 	lsm.i2c->CR2 |= 
 		I2C_CR2_RD_WRN |	// read
 		I2C_CR2_AUTOEND;    // auto stop
@@ -101,7 +96,7 @@ static void lsm303dlhc_regs_read_async(uint8_t slave, uint8_t begin_reg, uint8_t
     dma_channel_init(lsm.dma_channel, &dma_trasfer);
     lsm.i2c->CR1 |= I2C_CR1_RXDMAEN;
 
-    lsm303dlhc_prepare_reg_read(slave, begin_reg);
+    lsm303dlhc_write_sub(slave, begin_reg);
 
     lsm.i2c->CR2 |= 
         I2C_CR2_RD_WRN |    // read
@@ -109,6 +104,31 @@ static void lsm303dlhc_regs_read_async(uint8_t slave, uint8_t begin_reg, uint8_t
     lsm.i2c->CR2 &= ~I2C_CR2_NBYTES;
     lsm.i2c->CR2 |= size << I2C_CR2_NBYTES_Pos; // size bytes
     lsm.i2c->CR2 |= I2C_CR2_START;
+}
+
+static void lsm303dlhc_reg_write_sync(uint8_t slave, uint8_t reg, uint8_t value)
+{
+    lsm.i2c->CR2 &= ~I2C_CR2_SADD;      
+    lsm.i2c->CR2 |= slave << 1; // have to shift by 1 because of 7-bit addr
+        
+    lsm.i2c->CR2 &= ~(
+        I2C_CR2_RD_WRN |            // write
+        I2C_CR2_NBYTES              // clear nbytes
+    );  
+    lsm.i2c->CR2 |= 
+        I2C_CR2_AUTOEND |           // auto stop
+        (2 << I2C_CR2_NBYTES_Pos);  // 2 bytes
+    lsm.i2c->CR2 |= I2C_CR2_START;
+    
+    while (!(lsm.i2c->ISR & I2C_ISR_TXIS)) {
+        __NOP(); 
+    }
+    lsm.i2c->TXDR = reg;
+
+    while (!(lsm.i2c->ISR & I2C_ISR_TXIS)) {
+        __NOP(); 
+    }
+    lsm.i2c->TXDR = value;
 }
 
 void lsm303dlhc_read_async_wait_to_finish()
@@ -151,4 +171,32 @@ void lsm303dlhc_acc_regs_read_async(lsm303dlhc_acc_reg_t reg, uint8_t* data, uin
 void lsm303dlhc_mag_regs_read_async(lsm303dlhc_mag_reg_t reg, uint8_t* data, uint8_t size)
 {
     return lsm303dlhc_regs_read_async(LSM303DLHC_MAGNETOMETER, reg, data, size);
+}
+
+void lsm303dlhc_acc_reg_write_sync(lsm303dlhc_acc_reg_t reg, uint8_t value)
+{
+    lsm303dlhc_reg_write_sync(LSM303DLHC_ACCELEROMETER, reg, value);
+}
+
+void lsm303dlhc_mag_reg_write_sync(lsm303dlhc_mag_reg_t reg, uint8_t value)
+{
+    lsm303dlhc_reg_write_sync(LSM303DLHC_MAGNETOMETER, reg, value);
+}
+
+void lsm303dlhc_init()
+{
+    uint8_t check;
+    lsm303dlhc_i2c_init();
+
+    // 0.75 Hz, temperature sensor off
+    lsm303dlhc_mag_reg_write_sync(LSM303DLHC_CRA_REG_M, 0);
+    check = lsm303dlhc_mag_reg_read_sync(LSM303DLHC_CRA_REG_M);
+
+    // range +- 1.3 Gauss
+    lsm303dlhc_mag_reg_write_sync(LSM303DLHC_CRB_REG_M, 0x20);
+    check = lsm303dlhc_mag_reg_read_sync(LSM303DLHC_CRB_REG_M);
+
+    // continuous conversion mode
+    lsm303dlhc_mag_reg_write_sync(LSM303DLHC_MR_REG_M, 0);
+    check = lsm303dlhc_mag_reg_read_sync(LSM303DLHC_MR_REG_M);
 }

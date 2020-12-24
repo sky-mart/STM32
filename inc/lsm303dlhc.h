@@ -27,12 +27,15 @@ typedef enum {
 
 void lsm303dlhc_init();
 
-uint8_t lsm303dlhc_acc_reg_read_sync(lsm303dlhc_acc_reg_t);
-uint8_t lsm303dlhc_mag_reg_read_sync(lsm303dlhc_mag_reg_t);
-void lsm303dlhc_acc_regs_read_sync(lsm303dlhc_acc_reg_t, uint8_t* data, uint8_t size);
-void lsm303dlhc_mag_regs_read_sync(lsm303dlhc_mag_reg_t, uint8_t* data, uint8_t size);
-void lsm303dlhc_acc_regs_read_async(lsm303dlhc_acc_reg_t, uint8_t* data, uint8_t size);
-void lsm303dlhc_mag_regs_read_async(lsm303dlhc_mag_reg_t, uint8_t* data, uint8_t size);
+uint8_t lsm303dlhc_acc_reg_read_sync(lsm303dlhc_acc_reg_t reg);
+uint8_t lsm303dlhc_mag_reg_read_sync(lsm303dlhc_mag_reg_t reg);
+void lsm303dlhc_acc_regs_read_sync(lsm303dlhc_acc_reg_t reg, uint8_t* data, uint8_t size);
+void lsm303dlhc_mag_regs_read_sync(lsm303dlhc_mag_reg_t reg, uint8_t* data, uint8_t size);
+void lsm303dlhc_acc_regs_read_async(lsm303dlhc_acc_reg_t reg, uint8_t* data, uint8_t size);
+void lsm303dlhc_mag_regs_read_async(lsm303dlhc_mag_reg_t reg, uint8_t* data, uint8_t size);
 void lsm303dlhc_read_async_wait_to_finish();
+
+void lsm303dlhc_acc_reg_write_sync(lsm303dlhc_acc_reg_t reg, uint8_t value);
+void lsm303dlhc_mag_reg_write_sync(lsm303dlhc_mag_reg_t reg, uint8_t value);
 
 #endif // LSM303DLHC_H
