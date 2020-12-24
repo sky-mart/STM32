@@ -27,17 +27,18 @@ static log_t log = {
 	0, // cur_size
 	0, // next_data
 	0, // next_size
-	USART2, // usart
-	{GPIOA, 2, 7}, // tx_pin PA2, AF7
-	{GPIOA, 3, 7}, // rx_pin PA3, AF7
-	DMA1_Channel7, // dma_channel
-	DMA1_Channel7_IRQn // dma_channel_irq
+	USART1, // usart
+	{GPIOA, 9, 7},	// tx_pin PA9, AF7
+	{GPIOA, 10, 7},	// rx_pin PA10, AF7
+	DMA1_Channel4,	// dma_channel
+	DMA1_Channel4_IRQn // dma_channel_irq
 };
 
 static void log_usart_init()
 {
 	usart_gpio_init(&log.tx_pin, &log.rx_pin);
-	log.usart->BRR = 0x4E1;	// 72 MHz, 115200 baud/s, oversampling 8
+	// log.usart->BRR = 0x4E1;	// 72 MHz, 115200 baud/s, oversampling 8
+	log.usart->BRR = 0x85;	// 8 MHz, 115200 baud/s, oversampling 8
 	log.usart->CR3 |= 
 		USART_CR3_DMAT |	// enable tx dma
 		USART_CR3_OVRDIS;	// disable overrun detection
@@ -122,10 +123,10 @@ log_printf_result_t log_printf(const char* format, ...)
 	return result;
 }
 
-void DMA1_Channel7_IRQHandler()
+void DMA1_Channel4_IRQHandler()
 {
-	if (DMA1->ISR & DMA_ISR_TCIF7) {
-		DMA1->IFCR |= DMA_IFCR_CTCIF7 | DMA_IFCR_CHTIF7;
+	if (DMA1->ISR & DMA_ISR_TCIF4) {
+		DMA1->IFCR |= DMA_IFCR_CTCIF4 | DMA_IFCR_CHTIF4;
 		log.dma_channel->CCR &= ~DMA_CCR_EN;
 
 		// We need to disable interrupts to use log_printf in interrupt handlers
