@@ -31,5 +31,8 @@ uint8_t lsm303dlhc_acc_reg_read_sync(lsm303dlhc_acc_reg_t);
 uint8_t lsm303dlhc_mag_reg_read_sync(lsm303dlhc_mag_reg_t);
 void lsm303dlhc_acc_regs_read_sync(lsm303dlhc_acc_reg_t, uint8_t* data, uint8_t size);
 void lsm303dlhc_mag_regs_read_sync(lsm303dlhc_mag_reg_t, uint8_t* data, uint8_t size);
+void lsm303dlhc_acc_regs_read_async(lsm303dlhc_acc_reg_t, uint8_t* data, uint8_t size);
+void lsm303dlhc_mag_regs_read_async(lsm303dlhc_mag_reg_t, uint8_t* data, uint8_t size);
+void lsm303dlhc_read_async_wait_to_finish();
 
 #endif // LSM303DLHC_H

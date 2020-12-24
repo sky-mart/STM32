@@ -32,7 +32,9 @@ void mag_print()
 	log_printf_result_t log_result = LOG_PRINTF_SUCCESS;
 	uint8_t mag_data[6];	
 
-	lsm303dlhc_mag_regs_read_sync(LSM303DLHC_OUT_X_H_M, mag_data, 6);
+	// lsm303dlhc_mag_regs_read_sync(LSM303DLHC_OUT_X_H_M, mag_data, 6);
+	lsm303dlhc_mag_regs_read_async(LSM303DLHC_OUT_X_H_M, mag_data, 6);
+	lsm303dlhc_read_async_wait_to_finish();
 	log_result = log_printf(
 		"X_H_M: %x\n"
 		"X_L_M: %x\n"

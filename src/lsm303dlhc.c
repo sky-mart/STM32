@@ -1,5 +1,6 @@
 #include "lsm303dlhc.h"
 #include "i2c.h"
+#include "dma.h"
 #include "gpio.h"
 #include "stm32f3xx.h"
 
@@ -7,12 +8,16 @@ typedef struct {
 	I2C_TypeDef* i2c;
 	gpio_pin_t scl_pin;
 	gpio_pin_t sda_pin;
+    DMA_Channel_TypeDef* dma_channel;
+    IRQn_Type dma_channel_irq;
 } lsm303dlhc_t;
 
 static lsm303dlhc_t lsm = {
 	I2C1, // i2c
 	{GPIOB, 6, 4}, // scl_pin PB6, AF4
 	{GPIOB, 7, 4}, // sda_pin PB7, AF4
+    DMA1_Channel7, // dma_channel
+    DMA1_Channel7_IRQn
 };
 
 typedef enum {
@@ -67,6 +72,7 @@ static void lsm303dlhc_regs_read_sync(uint8_t slave, uint8_t begin_reg, uint8_t*
 	uint8_t i;
 	lsm303dlhc_prepare_reg_read(slave, begin_reg);
 
+    lsm.i2c->CR1 &= ~I2C_CR1_TXDMAEN;
 	lsm.i2c->CR2 |= 
 		I2C_CR2_RD_WRN |	// read
 		I2C_CR2_AUTOEND;    // auto stop
@@ -80,6 +86,37 @@ static void lsm303dlhc_regs_read_sync(uint8_t slave, uint8_t begin_reg, uint8_t*
     	}
     	data[i] = lsm.i2c->RXDR;
     }
+}
+
+static void lsm303dlhc_regs_read_async(uint8_t slave, uint8_t begin_reg, uint8_t* data, uint8_t size)
+{
+    dma_transfer_t dma_trasfer;
+    dma_trasfer.memory_addr = (void*)data;
+    dma_trasfer.periph_addr = (void*)&lsm.i2c->RXDR;
+    dma_trasfer.count = size;
+    *(uint32_t*)&dma_trasfer.config = 0U;
+    // dma_trasfer.config.TCIE = dma_irq;
+    dma_trasfer.config.MINC = 1;
+
+    dma_channel_init(lsm.dma_channel, &dma_trasfer);
+    lsm.i2c->CR1 |= I2C_CR1_RXDMAEN;
+
+    lsm303dlhc_prepare_reg_read(slave, begin_reg);
+
+    lsm.i2c->CR2 |= 
+        I2C_CR2_RD_WRN |    // read
+        I2C_CR2_AUTOEND;    // auto stop
+    lsm.i2c->CR2 &= ~I2C_CR2_NBYTES;
+    lsm.i2c->CR2 |= size << I2C_CR2_NBYTES_Pos; // size bytes
+    lsm.i2c->CR2 |= I2C_CR2_START;
+}
+
+void lsm303dlhc_read_async_wait_to_finish()
+{
+    while (!(DMA1->ISR & DMA_ISR_TCIF7)) {
+        __NOP();
+    }
+    DMA1->IFCR |= DMA_IFCR_CTCIF7 | DMA_IFCR_CHTIF7;
 }
 
 uint8_t lsm303dlhc_acc_reg_read_sync(lsm303dlhc_acc_reg_t reg)
@@ -104,4 +141,14 @@ void lsm303dlhc_acc_regs_read_sync(lsm303dlhc_acc_reg_t reg, uint8_t* data, uint
 void lsm303dlhc_mag_regs_read_sync(lsm303dlhc_mag_reg_t reg, uint8_t* data, uint8_t size)
 {
 	return lsm303dlhc_regs_read_sync(LSM303DLHC_MAGNETOMETER, reg, data, size);
+}
+
+void lsm303dlhc_acc_regs_read_async(lsm303dlhc_acc_reg_t reg, uint8_t* data, uint8_t size)
+{
+    return lsm303dlhc_regs_read_async(LSM303DLHC_ACCELEROMETER, reg, data, size);
+}
+
+void lsm303dlhc_mag_regs_read_async(lsm303dlhc_mag_reg_t reg, uint8_t* data, uint8_t size)
+{
+    return lsm303dlhc_regs_read_async(LSM303DLHC_MAGNETOMETER, reg, data, size);
 }

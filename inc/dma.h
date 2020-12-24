@@ -8,7 +8,7 @@ typedef struct {
 	uint32_t TCIE : 1;
 	uint32_t HTIE : 1;
 	uint32_t TEIE : 1;
-	uint32_t DIR : 1;
+	uint32_t DIR : 1;		// read from memory
 	uint32_t CIRC : 1;
 	uint32_t PINC : 1;
 	uint32_t MINC : 1;
