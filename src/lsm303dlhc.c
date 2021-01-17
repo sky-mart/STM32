@@ -21,8 +21,8 @@ static lsm303dlhc_t lsm = {
 };
 
 typedef enum {
-	LSM303DLHC_ACCELEROMETER = 0x19,
-	LSM303DLHC_MAGNETOMETER = 0x1e
+       LSM303DLHC_ACCELEROMETER = 0x19,
+       LSM303DLHC_MAGNETOMETER = 0x1e
 } lsm303dlhc_i2c_address_t;
 
 static void lsm303dlhc_i2c_init()
@@ -39,6 +39,7 @@ static void lsm303dlhc_i2c_init()
     lsm.i2c->CR1 |= I2C_CR1_PE;
 }
 
+// sub is an address in LSM303DLHC
 static void lsm303dlhc_write_sub(uint8_t slave, uint8_t sub)
 {
 	lsm.i2c->CR2 &= ~I2C_CR2_SADD;		
@@ -65,7 +66,7 @@ static void lsm303dlhc_write_sub(uint8_t slave, uint8_t sub)
 static void lsm303dlhc_regs_read_sync(uint8_t slave, uint8_t begin_reg, uint8_t* data, uint8_t size)
 {
 	uint8_t i;
-	lsm303dlhc_write_sub(slave, begin_reg);
+	lsm303dlhc_write_sub(slave, (1 << 7) | begin_reg);
 
     lsm.i2c->CR1 &= ~I2C_CR1_RXDMAEN;
 	lsm.i2c->CR2 |= 
@@ -96,7 +97,7 @@ static void lsm303dlhc_regs_read_async(uint8_t slave, uint8_t begin_reg, uint8_t
     dma_channel_init(lsm.dma_channel, &dma_trasfer);
     lsm.i2c->CR1 |= I2C_CR1_RXDMAEN;
 
-    lsm303dlhc_write_sub(slave, begin_reg);
+    lsm303dlhc_write_sub(slave, (1 << 7) | begin_reg);
 
     lsm.i2c->CR2 |= 
         I2C_CR2_RD_WRN |    // read
@@ -183,10 +184,9 @@ void lsm303dlhc_mag_reg_write_sync(lsm303dlhc_mag_reg_t reg, uint8_t value)
     lsm303dlhc_reg_write_sync(LSM303DLHC_MAGNETOMETER, reg, value);
 }
 
-void lsm303dlhc_init()
+static void lsm303dlhc_mag_init()
 {
-    uint8_t check;
-    lsm303dlhc_i2c_init();
+    uint8_t check; // debug variable
 
     // 0.75 Hz, temperature sensor off
     lsm303dlhc_mag_reg_write_sync(LSM303DLHC_CRA_REG_M, 0);
@@ -199,4 +199,28 @@ void lsm303dlhc_init()
     // continuous conversion mode
     lsm303dlhc_mag_reg_write_sync(LSM303DLHC_MR_REG_M, 0);
     check = lsm303dlhc_mag_reg_read_sync(LSM303DLHC_MR_REG_M);
+}
+
+static void lsm303dlhc_acc_init()
+{
+    uint8_t check; // debug variable
+
+    // 1 Hz, 3 axis
+    lsm303dlhc_acc_reg_write_sync(LSM303DLHC_CTRL_REG1_A, 0x17);
+    // check = lsm303dlhc_acc_reg_read_sync(LSM303DLHC_CTRL_REG1_A);
+
+    // +- 16G, high resolution
+    lsm303dlhc_acc_reg_write_sync(LSM303DLHC_CTRL_REG4_A, 0x38);
+    // check = lsm303dlhc_acc_reg_read_sync(LSM303DLHC_CTRL_REG4_A);
+
+    // data ready interrupt on INT1
+    // lsm303dlhc_acc_reg_write_sync(LSM303DLHC_CTRL_REG3_A, 0x10);
+    // check = lsm303dlhc_acc_reg_read_sync(LSM303DLHC_CTRL_REG3_A);
+}
+
+void lsm303dlhc_init()
+{
+    lsm303dlhc_i2c_init();
+    lsm303dlhc_acc_init();    
+    lsm303dlhc_mag_init();
 }
