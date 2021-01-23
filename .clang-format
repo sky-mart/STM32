@@ -6,4 +6,7 @@ IndentWidth: 4
 ---
 Language: Cpp
 AlignConsecutiveAssignments: true
+AlignConsecutiveBitFields: true
+AlignConsecutiveMacros: true
 AlignTrailingComments: true
+BreakBeforeBraces: Linux
