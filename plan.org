@@ -1,0 +1,15 @@
+What am I gonna do?
+
+* Organizational
+  - clang-tidy
+  - create a lib 'know'
+  - setup debugger to work with emacs
+
+* Peripherals
+  - SPI
+  - USB
+
+* Logical
+  - work with interrupts
+  - kalman
+
